@@ -1,0 +1,282 @@
+16:33:48 **** Clean-only build of configuration release for project Mesh ****
+make MODE=release clean 
+cd src && /usr/bin/make clean
+make[1]: Entering directory '/g/Semester7/Networks/Labs/Project_V3/Mesh/src'
+Cleaning Mesh.exe
+make[1]: Leaving directory '/g/Semester7/Networks/Labs/Project_V3/Mesh/src'
+16:33:51 **** Build of configuration release for project Mesh ****
+make MODE=release all 
+cd src && /usr/bin/make
+make[1]: Entering directory '/g/Semester7/Networks/Labs/Project_V3/Mesh/src'
+MSGC: MyMessage.msg
+Node.cc
+In file included from Node.cc:16:
+./Node.h:68:52: error: calling a protected constructor of class 'MyMessage_Base'
+    MyMessage_Base *signal_to_enable_network = new MyMessage_Base("");;
+                                                   ^
+./MyMessage_m.h:85:5: note: declared protected here
+    MyMessage_Base(const char *name=nullptr, short kind=0);
+    ^
+In file included from Node.cc:16:
+./Node.h:69:41: error: calling a protected constructor of class 'MyMessage_Base'
+    MyMessage_Base *frame_to_send = new MyMessage_Base("");;
+                                        ^
+./MyMessage_m.h:85:5: note: declared protected here
+    MyMessage_Base(const char *name=nullptr, short kind=0);
+    ^
+In file included from Node.cc:16:
+./Node.h:70:42: error: calling a protected constructor of class 'MyMessage_Base'
+    MyMessage_Base *frame_received = new MyMessage_Base("");;
+                                         ^
+./MyMessage_m.h:85:5: note: declared protected here
+    MyMessage_Base(const char *name=nullptr, short kind=0);
+    ^
+Node.cc:75:44: error: calling a protected constructor of class 'MyMessage_Base'
+        time_outs[destination_index] = new MyMessage_Base("");
+                                           ^
+./MyMessage_m.h:85:5: note: declared protected here
+    MyMessage_Base(const char *name=nullptr, short kind=0);
+    ^
+Node.cc:76:45: error: calling a protected constructor of class 'MyMessage_Base'
+        ack_timers[destination_index] = new MyMessage_Base("");
+                                            ^
+./MyMessage_m.h:85:5: note: declared protected here
+    MyMessage_Base(const char *name=nullptr, short kind=0);
+    ^
+Node.cc:94:31: error: calling a protected constructor of class 'MyMessage_Base'
+    MyMessage_Base* msg = new MyMessage_Base("");
+                              ^
+./MyMessage_m.h:85:5: note: declared protected here
+    MyMessage_Base(const char *name=nullptr, short kind=0);
+    ^
+Node.cc:117:24: error: calling a protected constructor of class 'MyMessage_Base'
+            mmsg = new MyMessage_Base("");
+                       ^
+./MyMessage_m.h:85:5: note: declared protected here
+    MyMessage_Base(const char *name=nullptr, short kind=0);
+    ^
+Node.cc:127:24: error: calling a protected constructor of class 'MyMessage_Base'
+            mmsg = new MyMessage_Base("");
+                       ^
+./MyMessage_m.h:85:5: note: declared protected here
+    MyMessage_Base(const char *name=nullptr, short kind=0);
+    ^
+Node.cc:138:28: error: calling a protected constructor of class 'MyMessage_Base'
+                mmsg = new MyMessage_Base("");
+                           ^
+./MyMessage_m.h:85:5: note: declared protected here
+    MyMessage_Base(const char *name=nullptr, short kind=0);
+    ^
+Node.cc:179:40: error: calling a protected constructor of class 'MyMessage_Base'
+            MyMessage_Base *mmsg = new MyMessage_Base("");
+                                       ^
+./MyMessage_m.h:85:5: note: declared protected here
+    MyMessage_Base(const char *name=nullptr, short kind=0);
+    ^
+Node.cc:363:41: error: calling a protected constructor of class 'MyMessage_Base'
+    MyMessage_Base* frame_to_send = new MyMessage_Base("");
+                                        ^
+./MyMessage_m.h:85:5: note: declared protected here
+    MyMessage_Base(const char *name=nullptr, short kind=0);
+    ^
+11 errors generated.
+make[1]: *** [Makefile:105: ../out/clang-release/src/Node.o] Error 1
+make[1]: Leaving directory '/g/Semester7/Networks/Labs/Project_V3/Mesh/src'
+make: *** [Makefile:2: all] Error 2
+"make MODE=release all" terminated with exit code 2. Build might be incomplete.
+16:35:38 **** Incremental Build of configuration release for project Mesh ****
+make MODE=release all 
+cd src && /usr/bin/make
+make[1]: Entering directory '/g/Semester7/Networks/Labs/Project_V3/Mesh/src'
+Node.cc
+MyMessage_m.cc
+Creating executable: ../out/clang-release/src/Mesh.exe
+make[1]: Leaving directory '/g/Semester7/Networks/Labs/Project_V3/Mesh/src'
+16:35:52 **** Incremental Build of configuration release for project Mesh ****
+make MODE=release all 
+cd src && /usr/bin/make
+make[1]: Entering directory '/g/Semester7/Networks/Labs/Project_V3/Mesh/src'
+make[1]: Nothing to be done for 'all'.
+make[1]: Leaving directory '/g/Semester7/Networks/Labs/Project_V3/Mesh/src'
+16:36:13 **** Incremental Build of configuration release for project Mesh ****
+make MODE=release all 
+cd src && /usr/bin/make
+make[1]: Entering directory '/g/Semester7/Networks/Labs/Project_V3/Mesh/src'
+make[1]: Nothing to be done for 'all'.
+make[1]: Leaving directory '/g/Semester7/Networks/Labs/Project_V3/Mesh/src'
+16:37:25 **** Incremental Build of configuration release for project Mesh ****
+make MODE=release all 
+cd src && /usr/bin/make
+make[1]: Entering directory '/g/Semester7/Networks/Labs/Project_V3/Mesh/src'
+Node.cc
+Creating executable: ../out/clang-release/src/Mesh.exe
+make[1]: Leaving directory '/g/Semester7/Networks/Labs/Project_V3/Mesh/src'
+16:38:42 **** Incremental Build of configuration release for project Mesh ****
+make MODE=release all 
+cd src && /usr/bin/make
+make[1]: Entering directory '/g/Semester7/Networks/Labs/Project_V3/Mesh/src'
+Node.cc
+Creating executable: ../out/clang-release/src/Mesh.exe
+make[1]: Leaving directory '/g/Semester7/Networks/Labs/Project_V3/Mesh/src'
+16:39:54 **** Incremental Build of configuration release for project Mesh ****
+make MODE=release all 
+cd src && /usr/bin/make
+make[1]: Entering directory '/g/Semester7/Networks/Labs/Project_V3/Mesh/src'
+Node.cc
+Creating executable: ../out/clang-release/src/Mesh.exe
+make[1]: Leaving directory '/g/Semester7/Networks/Labs/Project_V3/Mesh/src'
+16:47:16 **** Incremental Build of configuration release for project Mesh ****
+make MODE=release all 
+cd src && /usr/bin/make
+make[1]: Entering directory '/g/Semester7/Networks/Labs/Project_V3/Mesh/src'
+Node.cc
+Node.cc:125:36: error: use of undeclared identifier 'NUMBER_OF_NODES'
+                rand = uniform(0,  NUMBER_OF_NODES);
+                                   ^
+Node.cc:306:54: error: use of undeclared identifier 'NUMBER_OF_NODES'
+    for(int destination_index=0; destination_index < NUMBER_OF_NODES; destination_index++)
+                                                     ^
+2 errors generated.
+make[1]: Leaving directory '/g/Semester7/Networks/Labs/Project_V3/Mesh/src'
+make[1]: *** [Makefile:105: ../out/clang-release/src/Node.o] Error 1
+make: *** [Makefile:2: all] Error 2
+"make MODE=release all" terminated with exit code 2. Build might be incomplete.
+16:48:21 **** Incremental Build of configuration release for project Mesh ****
+make MODE=release all 
+cd src && /usr/bin/make
+make[1]: Entering directory '/g/Semester7/Networks/Labs/Project_V3/Mesh/src'
+Node.cc
+Creating executable: ../out/clang-release/src/Mesh.exe
+make[1]: Leaving directory '/g/Semester7/Networks/Labs/Project_V3/Mesh/src'
+16:49:23 **** Incremental Build of configuration release for project Mesh ****
+make MODE=release all 
+cd src && /usr/bin/make
+make[1]: Entering directory '/g/Semester7/Networks/Labs/Project_V3/Mesh/src'
+make[1]: Nothing to be done for 'all'.
+make[1]: Leaving directory '/g/Semester7/Networks/Labs/Project_V3/Mesh/src'
+16:50:07 **** Incremental Build of configuration release for project Mesh ****
+make MODE=release all 
+cd src && /usr/bin/make
+make[1]: Entering directory '/g/Semester7/Networks/Labs/Project_V3/Mesh/src'
+make[1]: Nothing to be done for 'all'.
+make[1]: Leaving directory '/g/Semester7/Networks/Labs/Project_V3/Mesh/src'
+16:50:44 **** Incremental Build of configuration release for project Mesh ****
+make MODE=release all 
+cd src && /usr/bin/make
+make[1]: Entering directory '/g/Semester7/Networks/Labs/Project_V3/Mesh/src'
+make[1]: Nothing to be done for 'all'.
+make[1]: Leaving directory '/g/Semester7/Networks/Labs/Project_V3/Mesh/src'
+16:52:38 **** Incremental Build of configuration release for project Mesh ****
+make MODE=release all 
+cd src && /usr/bin/make
+make[1]: Entering directory '/g/Semester7/Networks/Labs/Project_V3/Mesh/src'
+make[1]: Nothing to be done for 'all'.
+make[1]: Leaving directory '/g/Semester7/Networks/Labs/Project_V3/Mesh/src'
+16:54:48 **** Incremental Build of configuration release for project Mesh ****
+make MODE=release all 
+cd src && /usr/bin/make
+make[1]: Entering directory '/g/Semester7/Networks/Labs/Project_V3/Mesh/src'
+make[1]: Nothing to be done for 'all'.
+make[1]: Leaving directory '/g/Semester7/Networks/Labs/Project_V3/Mesh/src'
+16:56:14 **** Incremental Build of configuration release for project Mesh ****
+make MODE=release all 
+cd src && /usr/bin/make
+make[1]: Entering directory '/g/Semester7/Networks/Labs/Project_V3/Mesh/src'
+make[1]: Nothing to be done for 'all'.
+make[1]: Leaving directory '/g/Semester7/Networks/Labs/Project_V3/Mesh/src'
+16:56:40 **** Incremental Build of configuration release for project Mesh ****
+make MODE=release all 
+cd src && /usr/bin/make
+make[1]: Entering directory '/g/Semester7/Networks/Labs/Project_V3/Mesh/src'
+make[1]: Nothing to be done for 'all'.
+make[1]: Leaving directory '/g/Semester7/Networks/Labs/Project_V3/Mesh/src'
+16:56:59 **** Incremental Build of configuration release for project Mesh ****
+make MODE=release all 
+cd src && /usr/bin/make
+make[1]: Entering directory '/g/Semester7/Networks/Labs/Project_V3/Mesh/src'
+make[1]: Nothing to be done for 'all'.
+make[1]: Leaving directory '/g/Semester7/Networks/Labs/Project_V3/Mesh/src'
+16:57:36 **** Incremental Build of configuration release for project Mesh ****
+make MODE=release all 
+cd src && /usr/bin/make
+make[1]: Entering directory '/g/Semester7/Networks/Labs/Project_V3/Mesh/src'
+make[1]: Nothing to be done for 'all'.
+make[1]: Leaving directory '/g/Semester7/Networks/Labs/Project_V3/Mesh/src'
+17:00:27 **** Incremental Build of configuration release for project Mesh ****
+make MODE=release all 
+cd src && /usr/bin/make
+make[1]: Entering directory '/g/Semester7/Networks/Labs/Project_V3/Mesh/src'
+Node.cc
+Creating executable: ../out/clang-release/src/Mesh.exe
+make[1]: Leaving directory '/g/Semester7/Networks/Labs/Project_V3/Mesh/src'
+17:10:50 **** Incremental Build of configuration release for project Mesh ****
+make MODE=release all 
+cd src && /usr/bin/make
+make[1]: Entering directory '/g/Semester7/Networks/Labs/Project_V3/Mesh/src'
+Node.cc
+Creating executable: ../out/clang-release/src/Mesh.exe
+make[1]: Leaving directory '/g/Semester7/Networks/Labs/Project_V3/Mesh/src'
+17:11:13 **** Incremental Build of configuration release for project Mesh ****
+make MODE=release all 
+cd src && /usr/bin/make
+make[1]: Entering directory '/g/Semester7/Networks/Labs/Project_V3/Mesh/src'
+Node.cc
+Creating executable: ../out/clang-release/src/Mesh.exe
+make[1]: Leaving directory '/g/Semester7/Networks/Labs/Project_V3/Mesh/src'
+17:11:29 **** Incremental Build of configuration release for project Mesh ****
+make MODE=release all 
+cd src && /usr/bin/make
+make[1]: Entering directory '/g/Semester7/Networks/Labs/Project_V3/Mesh/src'
+make[1]: Nothing to be done for 'all'.
+make[1]: Leaving directory '/g/Semester7/Networks/Labs/Project_V3/Mesh/src'
+17:13:50 **** Incremental Build of configuration release for project Mesh ****
+make MODE=release all 
+cd src && /usr/bin/make
+make[1]: Entering directory '/g/Semester7/Networks/Labs/Project_V3/Mesh/src'
+Node.cc
+Creating executable: ../out/clang-release/src/Mesh.exe
+make[1]: Leaving directory '/g/Semester7/Networks/Labs/Project_V3/Mesh/src'
+17:14:52 **** Incremental Build of configuration release for project Mesh ****
+make MODE=release all 
+cd src && /usr/bin/make
+make[1]: Entering directory '/g/Semester7/Networks/Labs/Project_V3/Mesh/src'
+make[1]: Nothing to be done for 'all'.
+make[1]: Leaving directory '/g/Semester7/Networks/Labs/Project_V3/Mesh/src'
+17:15:37 **** Incremental Build of configuration release for project Mesh ****
+make MODE=release all 
+cd src && /usr/bin/make
+make[1]: Entering directory '/g/Semester7/Networks/Labs/Project_V3/Mesh/src'
+make[1]: Nothing to be done for 'all'.
+make[1]: Leaving directory '/g/Semester7/Networks/Labs/Project_V3/Mesh/src'
+17:25:34 **** Incremental Build of configuration release for project Mesh ****
+make MODE=release all 
+cd src && /usr/bin/make
+make[1]: Entering directory '/g/Semester7/Networks/Labs/Project_V3/Mesh/src'
+Node.cc
+Creating executable: ../out/clang-release/src/Mesh.exe
+G:\Semester7\Networks\omnetpp-5.6.2\tools\win64\mingw64\bin\ld: cannot open output file ../out/clang-release/src/Mesh.exe: Permission denied
+clang++.exe: error: unable to remove file: Permission denied
+clang++.exe: error: linker command failed with exit code 1 (use -v to see invocation)
+make[1]: Leaving directory '/g/Semester7/Networks/Labs/Project_V3/Mesh/src'
+make[1]: *** [Makefile:96: ../out/clang-release/src/Mesh.exe] Error 1
+make: *** [Makefile:2: all] Error 2
+"make MODE=release all" terminated with exit code 2. Build might be incomplete.
+17:25:52 **** Incremental Build of configuration release for project Mesh ****
+make MODE=release all 
+cd src && /usr/bin/make
+make[1]: Entering directory '/g/Semester7/Networks/Labs/Project_V3/Mesh/src'
+Creating executable: ../out/clang-release/src/Mesh.exe
+make[1]: Leaving directory '/g/Semester7/Networks/Labs/Project_V3/Mesh/src'
+17:32:01 **** Incremental Build of configuration release for project Mesh ****
+make MODE=release all 
+cd src && /usr/bin/make
+make[1]: Entering directory '/g/Semester7/Networks/Labs/Project_V3/Mesh/src'
+Node.cc
+Creating executable: ../out/clang-release/src/Mesh.exe
+make[1]: Leaving directory '/g/Semester7/Networks/Labs/Project_V3/Mesh/src'
+17:32:21 **** Incremental Build of configuration release for project Mesh ****
+make MODE=release all 
+cd src && /usr/bin/make
+make[1]: Entering directory '/g/Semester7/Networks/Labs/Project_V3/Mesh/src'
+make[1]: Nothing to be done for 'all'.
+make[1]: Leaving directory '/g/Semester7/Networks/Labs/Project_V3/Mesh/src'

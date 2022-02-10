@@ -1,0 +1,540 @@
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Lesser General Public License for more details.
+// 
+// You should have received a copy of the GNU Lesser General Public License
+// along with this program.  If not, see http://www.gnu.org/licenses/.
+// 
+
+#include "Node.h"
+#include <iostream>
+#include <bitset>
+#include <sstream>
+#include <fstream>
+#include <string>
+#include<stdio.h>
+#include<stdlib.h>
+
+Define_Module(Node);
+
+static int GeneratedFramesNumber = 0;
+static int LostFramesNumber = 0;
+static int RetransmittedFramesNumber = 0;
+static int UsefulFramesNumber = 0;
+
+void Node::initialize()
+{
+    //first_frame = MAX_SEQUENCE + 1
+    signal_to_enable_network->setType(network_enable);
+//    std::string name = getName();
+//    name = name[1];
+//    std::stringstream number(name);
+//    number >> node_number;
+    node_number = getIndex();
+    for(int destination_index = 0; destination_index < NUMBER_OF_NODES - 1; destination_index++)
+    {
+        no_nack_sent[destination_index] = true; //this flag is to be checked when a checksum error is received or an out of order frame
+        ack_expected[destination_index]=0; //the frame of this sequence has to be sent when we receive a timeout, incremented when we receive an ack
+        sequence_to_send_next[destination_index] = 0; //incremented when we send a frame
+        seq_where_inbound_window_begins[destination_index] = 0; //this is the expected sequence to be received
+        seq_after_inbound_window_boundary[destination_index] = WINDOW_WIDTH;
+        number_of_sent_but_not_acked[destination_index] = 0; //incremented every time we send an ack, checked afterwards to disable the network layer if we have the window full
+        enable_network_layer(destination_index);
+        //initializing self-messages to trigger events
+        time_outs[destination_index] = new MyMessage_Base("");
+        ack_timers[destination_index] = new MyMessage_Base("");
+
+        time_outs[destination_index]->setDestination_node((destination_index >= node_number)?destination_index+1:destination_index);
+        ack_timers[destination_index]->setDestination_node((destination_index >= node_number)?destination_index+1:destination_index);
+        time_outs[destination_index]->setType(timeout);
+        ack_timers[destination_index]->setType(ack_timeout);
+        //--------------------------------------------
+//        last_set_out_timer[destination_index] = -1;
+        for(int window_index = 0; window_index < WINDOW_WIDTH; window_index++)
+        {
+            inbound_receieved_or_not[destination_index][window_index] = false; //flags to be checked to avoid duplication, so it's checked every time we receive a new data frame
+            ack_received_or_not[destination_index][window_index] = false; //flags to avoid ack duplication and ensure that we keep track of the corrected number of remaining acks to be received
+            outbound_window[destination_index][window_index] = NULL;
+            std::inbound_window[destination_index]::insert(NULL);
+        }
+    }
+    //simulation sending frames with frame_arrival type
+    double interval = exponential(1 / par("lambda").doubleValue());
+    MyMessage_Base* msg = new MyMessage_Base("");
+    msg->setType(frame_from_network);
+    scheduleAt(simTime() + interval, msg);
+}
+
+void Node::handleMessage(cMessage *msg)
+{
+    frame_received = check_and_cast<MyMessage_Base *>(msg);
+    if(!(frame_received->isSelfMessage()) && !(frame_received->getDestination_node() == node_number)){
+       send(frame_received, "out");
+       return;
+    }
+
+    frame_type type_received = frame_received->getType();
+    int source_index = (frame_received->getSource_node() > node_number)? frame_received->getSource_node()-1 : frame_received->getSource_node(); //index of node to send to
+
+    if(type_received == frame_from_network || type_received == network_enable)
+    {
+        int destination_index;
+        if(type_received == frame_from_network){
+
+            MyMessage_Base* mmsg;
+            double interval = 30;
+            mmsg = new MyMessage_Base("");
+            mmsg->setType(frame_from_network);
+            scheduleAt(simTime() + interval, mmsg);
+            //--------------------------------------------
+            //for simulation: generating peer destination
+            int rand;
+            do { //Avoid sending to yourself
+                rand = uniform(0,  NUMBER_OF_NODES);
+            } while(rand == getIndex());
+
+            mmsg = new MyMessage_Base("");
+            mmsg->setType(handshake);
+            mmsg->setDestination_node(rand);
+            mmsg->setSource_node(node_number);
+            send(mmsg, "out");
+
+            int file = uniform(0,2);
+            std::ifstream MyReadFile("dataToSend("+ std::to_string(file) +").txt");
+            std::string myText;
+            destination_index = (rand > node_number)? rand-1 : rand;
+            while (getline (MyReadFile, myText)) {
+                mmsg = new MyMessage_Base("");
+                mmsg->setM_Payload(myText.c_str());
+                mmsg->setType(data);
+                mmsg->setDestination_node(rand);
+                buffered_from_network[destination_index].insert(mmsg); //queue to ensure correct sequence of sending
+            }
+        }
+        else{
+            destination_index = (frame_received->getDestination_node() > node_number)? frame_received->getDestination_node()-1 : frame_received->getDestination_node();
+        }
+
+        /*
+        mmsg = new MyMessage_Base("Hello");
+        mmsg->setM_Payload("hi there!");
+        mmsg->setType(data);
+        mmsg->setDestination_node(rand);
+        */
+        //--------------------------------------------
+        //int destination_index = (mmsg->getDestination_node() > node_number)? mmsg->getDestination_node()-1 : mmsg->getDestination_node();
+        //if(type_received == frame_from_network) buffered_from_network[destination_index].insert(mmsg); //queue to ensure correct sequence of sending
+        while (network_layer_enabled[destination_index] == true && buffered_from_network[destination_index].front())
+        {
+            statistics(1);
+            statistics(4);
+            frame_to_send = check_and_cast<MyMessage_Base *> (buffered_from_network[destination_index].pop());
+            number_of_sent_but_not_acked[destination_index]++;
+            outbound_window[destination_index][sequence_to_send_next[destination_index]%WINDOW_WIDTH] = frame_to_send->dup();
+//            ack_received_or_not[destination_index][sequence_to_send_next%WINDOW_WIDTH] = false;
+            send_frame(data,sequence_to_send_next[destination_index],seq_where_inbound_window_begins[destination_index],frame_to_send->getDestination_node());
+            circular_increment(sequence_to_send_next[destination_index]);
+            if(number_of_sent_but_not_acked[destination_index] >= WINDOW_WIDTH) disable_network_layer(destination_index);
+            delete frame_to_send;
+        }
+    }
+    else if(type_received == handshake){
+
+        int file = uniform(0,2);
+        std::ifstream MyReadFile("dataToSend("+ std::to_string(file) +").txt");
+        std::string myText;
+        int destination_index = (frame_received->getSource_node() > node_number)? frame_received->getSource_node()-1 : frame_received->getSource_node();
+        while (getline (MyReadFile, myText)) {
+            MyMessage_Base *mmsg = new MyMessage_Base("");
+            mmsg->setM_Payload(myText.c_str());
+            mmsg->setType(data);
+            mmsg->setDestination_node(frame_received->getSource_node());
+            buffered_from_network[destination_index].insert(mmsg); //queue to ensure correct sequence of sending
+        }
+        EV<<"handshake received from "<<frame_received->getSource_node()<<" at "<< node_number <<"\n";
+        signal_to_enable_network->setDestination_node(frame_received->getSource_node());
+        scheduleAt(simTime()+0.1, signal_to_enable_network);
+        signal_to_enable_network = signal_to_enable_network->dup();
+    }
+    else if(type_received == data)
+    {
+        bubble("Message received");
+        EV << "Data recieved at " << node_number << " from " << frame_received->getSource_node() << " with sequence of "<< frame_received->getSequence() <<"\n";
+        //hamming
+        std::string charC;
+        std::string mypayload= frame_received->getM_Payload();
+        for(int i = 0 ; i<8 ; i++){
+            charC += mypayload[i];
+        }
+        int charCount = std::stoi(charC, 0, 2);
+        int m = charCount * 8;
+        int r = 0;
+        while(m > (int)pow(2,r) - (r+1)){
+            r++;
+        }
+        mypayload.erase(0,8);
+        int errorPosition = checkHamming(m, r, mypayload);
+        if(errorPosition != 0){
+            mypayload[errorPosition - 1] = mypayload[errorPosition - 1] == '0'? '1':'0';
+            EV<<"Payload after correction: "<<mypayload<<"\n";
+        }
+        int i = 1;
+        int j = 0;
+        while(r != 0){
+            mypayload.erase(i-j-1,1);
+            i = i*2;
+            j++;
+            r--;
+        }
+        frame_received->setM_Payload(mypayload.c_str());
+        //------------------
+
+        if((frame_received->getSequence() != seq_where_inbound_window_begins[source_index]) && is_sequence_between(frame_received->getSequence(), seq_where_inbound_window_begins[source_index], seq_after_inbound_window_boundary[source_index]) && no_nack_sent[source_index])
+        {
+            bubble("NACK sent");
+            statistics(1);
+            send_frame(nack, 0, seq_where_inbound_window_begins[source_index], frame_received->getSource_node());
+        }
+        else
+        {
+            start_ack_timer(frame_received->getSource_node());
+        }
+        if(is_sequence_between(frame_received->getSequence(), seq_where_inbound_window_begins[source_index], seq_after_inbound_window_boundary[source_index]) && inbound_receieved_or_not[source_index][frame_received->getSequence() % WINDOW_WIDTH] == false)
+        {
+            inbound_receieved_or_not[source_index][frame_received->getSequence() % WINDOW_WIDTH] = true;
+            inbound_window[source_index][frame_received->getSequence() % WINDOW_WIDTH] = frame_received->dup();
+            while(inbound_receieved_or_not[source_index][seq_where_inbound_window_begins[source_index] % WINDOW_WIDTH])
+            {
+                no_nack_sent[source_index] = true;
+                inbound_receieved_or_not[source_index][seq_where_inbound_window_begins[source_index] % WINDOW_WIDTH] = false;
+                circular_increment(seq_where_inbound_window_begins[source_index]);
+                circular_increment(seq_after_inbound_window_boundary[source_index]);
+                start_ack_timer(frame_received->getSource_node());
+            }
+        }
+        else{
+            EV << "Frame of sequence " << frame_received->getSequence() << " unaccepted, out of window boundaries " <<'\n';
+        }
+        while(is_sequence_between(frame_received->getAck(), ack_expected[source_index], sequence_to_send_next[source_index]) && ack_received_or_not[source_index][frame_received->getAck() % WINDOW_WIDTH] == false)
+        {
+            EV <<"ACK received at "<< getIndex() <<" from "<<frame_received->getSource_node()<<" for sequence "<< (ack_expected[source_index] + 1) % (MAX_SEQUENCE + 1) <<"\n";
+            ack_received_or_not[source_index][ack_expected[source_index] % WINDOW_WIDTH] = true;
+            number_of_sent_but_not_acked[source_index]--;
+            stop_timer(ack_expected[source_index],frame_received->getSource_node());
+            circular_increment(ack_expected[source_index]);
+        }
+        delete frame_received;
+    }
+    else if(type_received == nack && is_sequence_between((frame_received->getAck() + 1)%(MAX_SEQUENCE + 1), ack_expected[source_index], sequence_to_send_next[source_index]))
+    {
+        statistics(3);
+        bubble("NACK received");
+        EV <<"NACK received at "<< getIndex() <<" from "<<frame_received->getSource_node()<<" for sequence "<< (frame_received->getAck()+1)%(MAX_SEQUENCE+1) <<"\n";
+        send_frame(data, (frame_received->getAck()+1)%(MAX_SEQUENCE+1), seq_where_inbound_window_begins[source_index], frame_received->getSource_node());
+        delete frame_received;
+    }
+    else if(type_received == ack)
+    {
+        bubble("ACK received");
+        while(is_sequence_between(frame_received->getAck(), ack_expected[source_index], sequence_to_send_next[source_index]) && ack_received_or_not[source_index][frame_received->getAck() % WINDOW_WIDTH] == false)
+        {
+            EV <<"ACK received at "<< getIndex() <<" from "<<frame_received->getSource_node()<<" for sequence "<< (ack_expected[source_index] + 1) % (MAX_SEQUENCE + 1) <<"\n";
+            ack_received_or_not[source_index][ack_expected[source_index] % WINDOW_WIDTH] = true;
+            number_of_sent_but_not_acked[source_index]--;
+            stop_timer(ack_expected[source_index],frame_received->getSource_node());
+            circular_increment(ack_expected[source_index]);
+        }
+        delete frame_received;
+    }
+    else if(type_received == timeout)
+    {
+        int destination_index = (frame_received->getDestination_node() > node_number)? frame_received->getDestination_node()-1 : frame_received->getDestination_node();
+        if(is_timer_set[destination_index][frame_received->getSequence() % (MAX_SEQUENCE + 1)])
+        {
+            statistics(3);
+            EV<< " timeout: Resending message from "<< getIndex()<<" to "<<frame_received->getDestination_node()<< " with sequence "<<ack_expected[destination_index]<<"\n";
+            send_frame(data, ack_expected[destination_index], seq_where_inbound_window_begins[destination_index], frame_received->getDestination_node()); //send the oldest unacknowledged frame
+            is_timer_set[destination_index][frame_received->getSequence() % (MAX_SEQUENCE + 1)] = false;
+        }
+        delete frame_received;
+    }
+    else if(type_received == ack_timeout)
+    {
+        int timer_index = (frame_received->getDestination_node() > node_number)? frame_received->getDestination_node()-1 : frame_received->getDestination_node();
+        if(ack_sent_or_not[timer_index] == false)
+        {
+            statistics(1);
+            EV<< " ack_timeout: ack from "<< getIndex()<<" to "<<frame_received->getDestination_node()<< " with sequence "<<seq_where_inbound_window_begins[timer_index]<<"\n";
+            send_frame(ack, 0, seq_where_inbound_window_begins[timer_index], frame_received->getDestination_node());
+            stop_ack_timer(frame_received->getDestination_node());
+            bubble("ACK sent");
+        }
+        delete frame_received;
+    }
+    for(int destination_index=0; destination_index < NUMBER_OF_NODES; destination_index++)
+    {
+        if(number_of_sent_but_not_acked[destination_index] < WINDOW_WIDTH && network_layer_enabled[destination_index]==false)
+            {
+                enable_network_layer(destination_index);
+                int destination_index_to_send = (destination_index >= node_number)?destination_index+1:destination_index;
+                signal_to_enable_network->setDestination_node(destination_index_to_send);
+                scheduleAt(simTime()+0.1, signal_to_enable_network);
+                signal_to_enable_network = signal_to_enable_network->dup();
+            }
+        else if(number_of_sent_but_not_acked[destination_index] >= WINDOW_WIDTH && network_layer_enabled[destination_index]==true)
+            {
+                disable_network_layer(destination_index);
+            }
+    }
+}
+void Node::start_timer(sequence_number s_no, unsigned int destination)
+{
+    int timer_index = (destination > node_number)? destination-1 : destination;
+    is_timer_set[timer_index][s_no % (MAX_SEQUENCE + 1)] = true;
+    time_outs[timer_index]->setAck(s_no);
+    scheduleAt(simTime() + TIMEOUT_DURATION, time_outs[timer_index]);
+    time_outs[timer_index] = time_outs[timer_index]->dup();
+}
+void Node::stop_timer(sequence_number s_no, unsigned int destination)
+{
+    int timer_index = (destination > node_number)? destination-1 : destination;
+    if(is_timer_set[timer_index][s_no % (MAX_SEQUENCE + 1)] == true)
+    {
+        is_timer_set[timer_index][s_no % (MAX_SEQUENCE + 1)] = false;
+    }
+}
+void Node::start_ack_timer(unsigned int destination)
+{
+    int ack_index = (destination > node_number)? destination-1 : destination;
+    ack_sent_or_not[ack_index] = false;
+    scheduleAt(simTime() + ACK_TIMEOUT_DURATION, ack_timers[ack_index]);
+    ack_timers[ack_index] = ack_timers[ack_index]->dup();
+}
+void Node::stop_ack_timer(unsigned int destination)
+{
+    int ack_index = (destination > node_number)? destination-1 : destination;
+    ack_sent_or_not[ack_index] = true;
+}
+void Node::enable_network_layer(int destination_index)
+{
+    network_layer_enabled[destination_index] = true;
+}
+void Node::disable_network_layer(int destination_index)
+{
+    network_layer_enabled[destination_index] = false;
+}
+bool Node::is_sequence_between (sequence_number s_no_to_check, sequence_number window_boundary_1, sequence_number window_boundary_2)
+{
+    return ((window_boundary_1 <= s_no_to_check)&&(s_no_to_check < window_boundary_2)) || ((window_boundary_2 < window_boundary_1) && (window_boundary_1 <= s_no_to_check)) || ((s_no_to_check < window_boundary_2) && (window_boundary_2 < window_boundary_1));
+}
+void Node::send_frame(frame_type type, sequence_number frame_no, sequence_number ack, unsigned int destination)
+{
+    MyMessage_Base* frame_to_send = new MyMessage_Base("");
+    int noise = par("noise").intValue();
+    int destination_index = (destination > node_number)? destination-1 : destination;
+    frame_to_send -> setType(type);
+    frame_to_send -> setAck((ack + MAX_SEQUENCE) % (MAX_SEQUENCE + 1));
+    frame_to_send -> setDestination_node(destination);
+    frame_to_send -> setSource_node(node_number);
+    stop_ack_timer(destination); //already piggy-backed
+    int rand;
+
+    if (type == nack){
+        //receiver
+        EV << "Sending NACK from source " << getIndex() << " to " << frame_to_send->getDestination_node()<<" for sequence "<< (frame_to_send->getAck()+1)%(MAX_SEQUENCE+1) <<"\n";
+        no_nack_sent[destination_index] = false;
+    }
+    if(type == data){
+        //sender
+        int ack_to_print = ((ack + MAX_SEQUENCE + 1) % (MAX_SEQUENCE + 1));
+        EV << "Sending data from source " << getIndex() << " to " << frame_to_send->getDestination_node() <<" with sequence "<<frame_no << " with piggybacked ack and next frame expected is " << ack_to_print <<"\n";
+        frame_to_send -> setM_Payload(outbound_window[destination_index][frame_no % WINDOW_WIDTH]->getM_Payload());
+        frame_to_send -> setSequence(frame_no);
+        EV << "Payload :  = " << frame_to_send->getM_Payload() << "\n";
+        start_timer(frame_no, destination);
+        ack_received_or_not[destination_index][frame_no % WINDOW_WIDTH] = false;
+
+
+        //hamming
+        std::string mypayload= frame_to_send->getM_Payload();
+        std::bitset<8> charCount(mypayload.length());
+        mypayload = convertToCode(mypayload);
+        EV<<"frame before hamming: "<<mypayload<<"\n";
+        int m = mypayload.length();
+        int r = 0;
+        while(m > (int)pow(2,r) - (r+1)){
+            r++;
+        }
+        mypayload = Hamming(m, r, mypayload);
+        //frame_to_send->setM_Payload(mypayload.c_str());
+        EV<<"frame after hamming : "<<mypayload<<"\n";
+
+        //Modifying payload
+        rand = uniform(0,1)*10;
+        if(rand < noise) // prob to delay the message
+        {
+            //mypayload= frame_to_send->getM_Payload();
+            rand=uniform(0,mypayload.length());
+            mypayload[rand] = mypayload[rand] == '0'? '1':'0';
+            //frame_to_send->setM_Payload(mypayload.c_str());
+            EV<<"Frame modification at bit "<<std::to_string(rand)<<endl;
+            EV<<"frame after modification: "<< mypayload<<"\n";
+        }
+        mypayload = charCount.to_string() + mypayload;
+        frame_to_send->setM_Payload(mypayload.c_str()); //Framing
+        EV<<"frame: "<< mypayload<<"\n";
+    }
+
+    //sending with random noise
+    rand=uniform(0,1)*10;
+    if(rand >= noise)
+    {
+        rand=uniform(0,1)*10;
+        if(rand < noise)
+        {
+            double delay=uniform(0.1,1);
+            EV<<"Frame delayed with time = "<<std::to_string(delay)<<endl;
+            rand=uniform(0,1)*10;
+            if(rand < noise)
+            {
+                EV<<"Frame Duplicated"<<endl;
+                MyMessage_Base *dupMsg = frame_to_send->dup();
+                sendDelayed(dupMsg, delay, "out");
+            }
+            sendDelayed(frame_to_send, delay, "out");
+        }
+        else
+        {
+            rand=uniform(0,1)*10;
+            if(rand < noise)
+            {
+                EV<<"Frame Duplicated"<<endl;
+                MyMessage_Base *dupMsg = frame_to_send->dup();
+                send(dupMsg, "out");
+            }
+            send(frame_to_send,"out");
+        }
+    }
+    else
+    {
+        statistics(2);
+        EV<<"Frame Lost"<<endl;
+        delete frame_to_send;
+    }
+    statistics(0);
+}
+
+void Node::statistics(int choice)
+{
+    switch(choice)
+    {
+        case 1:
+            GeneratedFramesNumber++;    //DATA, ACk, NACK
+            break;
+        case 2:
+            LostFramesNumber++;
+            break;
+        case 3:
+            RetransmittedFramesNumber++;    //assumption: duplicated frames is not considered a retransmitted frame
+            break;
+        case 4:
+            UsefulFramesNumber++;   //data sent for the first time
+            break;
+        default:
+            EV << "Number Of Generated Frames = " << GeneratedFramesNumber << "\n";
+            EV << "Number Of Lost Frames = " << LostFramesNumber << "\n";
+            EV << "Number Of Retransmitted Frames = " << RetransmittedFramesNumber << "\n";
+            EV << "Percentage Of Useful Data / All Data = " << ((double)UsefulFramesNumber / (double)(GeneratedFramesNumber + RetransmittedFramesNumber)) * 100 << "%\n";
+            EV << "-----------------------------------------------\n";
+    }
+
+}
+char Node::calculateParityAtPosition(int position, int newSize, std::string newCode) {
+
+    int index = position - 1;
+    int count = 0;
+
+    for (int index = position - 1; index < newSize; index = index + 2 * position) {
+
+        for (int j = index; j < index + position; j++) {
+
+            if (newCode[j] == '1') {
+                count++;
+            }
+
+
+            if (j >= newSize)
+                break;
+
+        }
+    }
+
+    if (count % 2 == 0)
+        return '0';
+    else
+        return '1';
+}
+std::string Node::Hamming(int m, int r, std::string code) {
+
+    //Add parity to positions
+    int j = 0; //Loop Counter
+    int newSize = r + m;
+    int position = 1; // Parity positions
+    std::string newCode = "";
+    for (int index = 0; index < newSize; index++) {
+        if (index == (int)pow(2, position - 1) - 1) { //parity position
+            newCode += '-'; // Mark parity positions
+            position++;
+        }
+        else {
+            newCode += code[j];
+            j++;
+        }
+    }
+
+    for (int i = 0; i < r; i++) {
+        int position = (int)pow(2, i);
+        int index = position - 1;
+        newCode[index] = calculateParityAtPosition(position, newSize, newCode);
+    }
+
+    return newCode;
+}
+std::string Node::convertToCode(std::string message) {
+    std::string code = "";
+    for (int i = 0; i < message.length(); ++i) {
+        char c = message[i];
+        std::bitset<8> b(c);
+        code = code + b.to_string();
+    }
+    return code;
+}
+std::string Node::characterCount(std::string message, int size) {
+    std::bitset<8> b(size);
+    std::string code = convertToCode(message);
+    return b.to_string() + code;
+}
+int Node::checkHamming(int m, int r, std::string newCode) {
+
+    int newSize = m + r;
+    std::string parityCheck = "";
+    for (int i = r - 1; i >= 0; i--) {
+        int position = (int)pow(2, i);
+        int y = calculateParityAtPosition(position, newSize, newCode) - '0';
+        parityCheck += y + '0';
+    }
+
+    int errorBit = stoi(parityCheck, 0, 2);
+    return errorBit;
+}
+
+
+
+

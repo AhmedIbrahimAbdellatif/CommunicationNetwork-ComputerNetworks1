@@ -1,0 +1,9 @@
+17:32:21 **** Incremental Build of configuration release for project Mesh ****
+make MODE=release all 
+cd src && /usr/bin/make
+make[1]: Entering directory '/g/Semester7/Networks/Labs/Project_V3/Mesh/src'
+make[1]: Nothing to be done for 'all'.
+make[1]: Leaving directory '/g/Semester7/Networks/Labs/Project_V3/Mesh/src'
+
+17:32:22 Build Finished. 0 errors, 0 warnings. (took 1s.50ms)
+

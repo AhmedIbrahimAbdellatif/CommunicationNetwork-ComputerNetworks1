@@ -1,0 +1,5 @@
+[General]
+network = mesh.Mesh
+Mesh.n = 7
+Mesh.noise = 1
+Mesh.nodes[..].lambda = 0.1
