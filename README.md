@@ -1,5 +1,5 @@
 # Computer Networks Simulation Project
-> This project is focused on simulating layer 2 protocols
+> This usinersity project that is focused on simulating layer 2 protocols
 ---
 ### Project team
 - Ahmed Ibrahim (me)
